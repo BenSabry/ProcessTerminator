@@ -7,6 +7,7 @@ var o = ProcessTerminatorOptions
 
 HandleArguments();
 WaitUntilMainProcessesExits();
+DisplayGithubUrl();
 
 var processes = GetProcesesToTerminate();
 
@@ -26,12 +27,17 @@ void HandleArguments()
     if (o.Version || o.Help)
     {
         if (o.Version) DisplayVersionMessage();
-        if (o.Help) DisplayHelpMessage();
+        if (o.Help)
+        {
+            DisplayGithubUrl();
+            DisplayHelpMessage();
+        }
 
         ExitProgram();
     }
     else if (string.IsNullOrEmpty(o.ProcessName))
     {
+        DisplayGithubUrl();
         DisplayHelpMessage();
         ExitProgram();
     }
@@ -86,6 +92,14 @@ Examples:
 static void DisplayVersionMessage()
 {
     Console.WriteLine(typeof(ProcessTerminator).Assembly.GetName().Version.ToString());
+}
+static void DisplayGithubUrl()
+{
+    var color = Console.ForegroundColor;
+    Console.ForegroundColor = ConsoleColor.DarkBlue;
+    Console.WriteLine("https://github.com/BenSabry/ProcessTerminator");
+    Console.ForegroundColor = color;
+    Console.WriteLine();
 }
 static void ExitProgram()
 {

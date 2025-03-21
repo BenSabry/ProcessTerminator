@@ -1,3 +1,7 @@
+# Downloads
+<b>*Latest release*</b> [v0.1.0-beta](https://github.com/BenSabry/ProcessTerminator/releases/tag/v0.1.0-beta)<br />
+<b>*All releases*</b> [releases](https://github.com/BenSabry/ProcessTerminator/releases)
+
 # ProcessTerminator
 ```
 Usage: ProcessTerminator [OPTIONS] process_name
