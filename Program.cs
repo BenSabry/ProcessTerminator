@@ -2,10 +2,10 @@
 using System.Diagnostics;
 
 #region Main
-var o = ProcessTerminatorOptions
-    .ParseArguments(args);
+const string log = "ProcessTerminator.log";
+var o = ProcessTerminatorOptions.ParseArguments(args);
 
-HandleArguments();
+Initialize();
 WaitUntilMainProcessesExits();
 
 var processes = GetProcesesToTerminate();
@@ -17,13 +17,13 @@ RemoveLeftovers();
 DisplayGithubUrl();
 
 #if DEBUG
-Console.WriteLine("Press any key to Exit.");
+WriteLine("Press any key to Exit.");
 Console.ReadKey();
 #endif
 #endregion
 
 #region Behavior
-void HandleArguments()
+void Initialize()
 {
     if (o.Version || o.Help)
     {
@@ -42,9 +42,15 @@ void HandleArguments()
         DisplayGithubUrl();
         ExitProgram();
     }
+
+    if (!File.Exists(log))
+    {
+        File.Create(log).Close();
+        WriteLine(o.ToString());
+    }
 }
 
-static void DisplayHelpMessage()
+void DisplayHelpMessage()
 {
     var programName = $"{typeof(ProcessTerminatorOptions).Assembly.GetName().Name}";
     var HelpMessage = $"""
@@ -69,6 +75,7 @@ Options:
     -c, --command       Send a custom command before attempting to close the process.
     -w, --wait          Set a time buffer to allow the target process to close naturally.
     -r, --remove        Paths (comma-separated) to remove after process termination.
+    -l, --log           Enables logging to a file, useful when running without a window.
 
 Arguments:
     process_name        The name of the process to terminate (required)
@@ -92,21 +99,21 @@ Examples:
 
 """;
 
-    Console.WriteLine(HelpMessage);
+    WriteLine(HelpMessage);
 }
-static void DisplayVersionMessage()
+void DisplayVersionMessage()
 {
-    Console.WriteLine(typeof(ProcessTerminator).Assembly.GetName().Version.ToString());
+    WriteLine(typeof(ProcessTerminator).Assembly.GetName().Version.ToString());
 }
-static void DisplayGithubUrl()
+void DisplayGithubUrl()
 {
     var color = Console.ForegroundColor;
     Console.ForegroundColor = ConsoleColor.DarkBlue;
-    Console.WriteLine("https://github.com/BenSabry/ProcessTerminator");
+    WriteLine("https://github.com/BenSabry/ProcessTerminator");
     Console.ForegroundColor = color;
-    Console.WriteLine();
+    WriteLine();
 }
-static void ExitProgram()
+void ExitProgram()
 {
     Environment.Exit(0);
 }
@@ -116,7 +123,7 @@ void WaitUntilMainProcessesExits()
     if (string.IsNullOrWhiteSpace(o.MonitorProcess)) return;
 
     if (Process.GetProcessesByName(o.MonitorProcess).Any())
-        Console.WriteLine($"Waiting {o.MonitorProcess} to exit.");
+        WriteLine($"Waiting {o.MonitorProcess} to exit.");
 
     while (Process.GetProcessesByName(o.MonitorProcess).Any(i => !i.HasExited))
         Task.Delay(o.IntervalTimeSpan).Wait();
@@ -125,14 +132,14 @@ void DelayBeforeTerminate()
 {
     if (o.Delay == default || processes.Length == default) return;
 
-    Console.WriteLine($"Delaying termination for {o.Delay} seconds.");
+    WriteLine($"Delaying termination for {o.Delay} seconds.");
     Task.Delay(o.DelayTimeSpan).Wait();
 }
 Process[] GetProcesesToTerminate()
 {
     var processes = Process.GetProcessesByName(o.ProcessName);
     if (processes.Length == default)
-        Console.WriteLine($"No {o.ProcessName} instances found to terminate.");
+        WriteLine($"No {o.ProcessName} instances found to terminate.");
 
     return processes;
 }
@@ -140,7 +147,7 @@ void SendCloseCommand()
 {
     if (string.IsNullOrWhiteSpace(o.CustomCommand) || processes.Length == default) return;
 
-    Console.WriteLine($"Sending '{o.CustomCommand}' to all instances running.");
+    WriteLine($"Sending '{o.CustomCommand}' to all instances running.");
     Parallel.ForEach(Process.GetProcessesByName(o.CustomCommand), process =>
     {
         process.StandardInput.WriteLine(o.CustomCommand);
@@ -149,7 +156,7 @@ void SendCloseCommand()
 
     if (o.Wait != default)
     {
-        Console.WriteLine($"Waiting for {o.Wait} seconds.");
+        WriteLine($"Waiting for {o.Wait} seconds.");
         Task.Delay(o.WaitTimeSpan).Wait();
     }
 }
@@ -157,13 +164,13 @@ void TerminateProcesses()
 {
     if (processes.Length == default) return;
 
-    Console.WriteLine($"Requesting all {o.ProcessName} instances to close.");
+    WriteLine($"Requesting all {o.ProcessName} instances to close.");
     Parallel.ForEach(processes, process =>
     {
         process.CloseMainWindow();
         if (!process.WaitForExit(o.DelayTimeSpan))
         {
-            Console.WriteLine($"Terminating {o.ProcessName} ({process.Id})");
+            WriteLine($"Terminating {o.ProcessName} ({process.Id})");
             process.Kill();
         }
 
@@ -177,21 +184,23 @@ void RemoveLeftovers()
     foreach (var path in o.PathesToRemove)
         try
         {
-            Console.WriteLine($"Removing {path}");
+            if (!File.Exists(path)) continue;
+            WriteLine($"Removing {path}");
 
             var attributes = File.GetAttributes(path);
             if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
-            {
-                if (Directory.Exists(path))
-                    Directory.Delete(path, true);
-            }
+                Directory.Delete(path, true);
             else
-            {
-                if (File.Exists(path))
-                    File.Delete(path);
-            }
+                File.Delete(path);
         }
         catch (Exception) { }
+}
+
+void WriteLine(string message = null)
+{
+    Console.WriteLine(message);
+    if (o.Log)
+        File.AppendAllLines(log, [$"{DateTime.Now.ToString("yyyy.MM.dd-HH:mm:ss")} {message}"]);
 }
 #endregion
 
@@ -207,6 +216,7 @@ public sealed class ProcessTerminatorOptions
     public string[] PathesToRemove { get; init; } = [];
     public bool Help { get; init; } = false;
     public bool Version { get; init; } = false;
+    public bool Log { get; init; } = false;
 
     public TimeSpan IntervalTimeSpan => TimeSpan.FromSeconds(Interval);
     public TimeSpan WaitTimeSpan => TimeSpan.FromSeconds(Wait);
@@ -246,6 +256,7 @@ public sealed class ProcessTerminatorOptions
 
         if (Help) args.Add($"--help");
         if (Version) args.Add($"--version");
+        if (Log) args.Add($"--log");
 
         args.Add(ProcessName);
         return args.ToArray();
@@ -264,6 +275,7 @@ public sealed class ProcessTerminatorOptions
         var remove = Default.PathesToRemove;
         var help = Default.Help;
         var version = Default.Version;
+        var log = Default.Log;
 
         var i = 0;
         while (i < args.Length)
@@ -277,6 +289,10 @@ public sealed class ProcessTerminatorOptions
                 case "-v":
                 case "--version":
                     version = true;
+                    break;
+                case "-l":
+                case "--log":
+                    log = true;
                     break;
                 case "-m":
                 case "--monitor":
@@ -355,7 +371,8 @@ public sealed class ProcessTerminatorOptions
             Delay = delay,
             PathesToRemove = remove,
             Help = help,
-            Version = version
+            Version = version,
+            Log = log
         };
     }
 }
