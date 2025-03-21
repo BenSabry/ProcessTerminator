@@ -3,18 +3,29 @@ using System.Diagnostics;
 
 #region Main
 const string log = "ProcessTerminator.log";
-var o = ProcessTerminatorOptions.ParseArguments(args);
+var o = new ProcessTerminatorOptions();
+var processes = Array.Empty<Process>();
 
-Initialize();
-WaitUntilMainProcessesExits();
+try
+{
+    o = ProcessTerminatorOptions.ParseArguments(args);
 
-var processes = GetProcesesToTerminate();
+    Initialize();
+    WaitUntilMainProcessesExits();
 
-DelayBeforeTerminate();
-SendCloseCommand();
-TerminateProcesses();
-RemoveLeftovers();
-DisplayGithubUrl();
+    processes = GetProcesesToTerminate();
+
+    DelayBeforeTerminate();
+    SendCloseCommand();
+    TerminateProcesses();
+    RemoveLeftovers();
+    DisplayGithubUrl();
+}
+catch (Exception ex)
+{
+    WriteLine($"{ex.Message} {ex.InnerException?.Message}");
+    throw;
+}
 #endregion
 
 #region Behavior
