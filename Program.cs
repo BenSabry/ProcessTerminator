@@ -105,7 +105,7 @@ Examples:
 }
 void DisplayVersionMessage()
 {
-    WriteLine(typeof(ProcessTerminator).Assembly.GetName().Version.ToString());
+    WriteLine(typeof(ProcessTerminatorWrapper).Assembly.GetName().Version.ToString());
 }
 void DisplayGithubUrl()
 {
@@ -378,7 +378,7 @@ public sealed class ProcessTerminatorOptions
         };
     }
 }
-public sealed class ProcessTerminator
+public sealed class ProcessTerminatorWrapper
 {
     #region Fields
     private const string ToolName = "ProcessTerminator.exe";
@@ -392,7 +392,12 @@ public sealed class ProcessTerminator
     #endregion
 
     #region Constructors
-    public ProcessTerminator(ProcessTerminatorOptions options)
+    static ProcessTerminatorWrapper()
+    {
+        if (!File.Exists(ToolPath))
+            throw new FileNotFoundException($"{ToolName} is missing!");
+    }
+    public ProcessTerminatorWrapper(ProcessTerminatorOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
