@@ -403,7 +403,7 @@ public sealed class ProcessTerminatorWrapper
 
         Arguments = options.ToString();
 
-        Version = ProcessHelper.RunAndGetOutput(ToolPath,
+        Version = ProcessHelper.RunAndReadOutput(ToolPath,
             new ProcessTerminatorOptions() { Version = true }.ToString()
             ).Trim();
     }
@@ -421,9 +421,7 @@ public sealed class ProcessTerminatorWrapper
         }
 
         // run
-        ProcessHelper
-            .RunAsync(ToolPath, Arguments)
-            .ConfigureAwait(false);
+        ProcessHelper.Run(ToolPath, Arguments);
     }
     #endregion
 }
