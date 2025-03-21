@@ -188,7 +188,7 @@ void TerminateProcesses()
 }
 void RemoveLeftovers()
 {
-    if (o.PathesToRemove == default) return;
+    if (o.PathesToRemove.Length == default) return;
 
     foreach (var path in o.PathesToRemove)
         try
