@@ -15,11 +15,6 @@ SendCloseCommand();
 TerminateProcesses();
 RemoveLeftovers();
 DisplayGithubUrl();
-
-#if DEBUG
-WriteLine("Press any key to Exit.");
-Console.ReadKey();
-#endif
 #endregion
 
 #region Behavior
