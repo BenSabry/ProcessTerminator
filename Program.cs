@@ -191,18 +191,16 @@ void RemoveLeftovers()
     if (o.PathesToRemove.Length == default) return;
 
     foreach (var path in o.PathesToRemove)
-        try
-        {
-            if (!File.Exists(path)) continue;
-            WriteLine($"Removing {path}");
+    {
+        if (!File.Exists(path)) continue;
+        WriteLine($"Removing {path}");
 
-            var attributes = File.GetAttributes(path);
-            if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
-                Directory.Delete(path, true);
-            else
-                File.Delete(path);
-        }
-        catch (Exception) { }
+        var attributes = File.GetAttributes(path);
+        if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+            Directory.Delete(path, true);
+        else
+            File.Delete(path);
+    }
 }
 
 void WriteLine(string message = null)
