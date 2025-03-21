@@ -1,6 +1,8 @@
 ﻿using Shared;
 using System.Diagnostics;
 
+//TODO: refactor
+
 #region Main
 var WriteLock = new object();
 const string log = "ProcessTerminator.log";
@@ -191,16 +193,16 @@ void RemoveLeftovers()
     if (o.PathesToRemove.Length == default) return;
 
     foreach (var path in o.PathesToRemove)
-    {
-        if (!File.Exists(path)) continue;
-        WriteLine($"Removing {path}");
-
-        var attributes = File.GetAttributes(path);
-        if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+        if (Directory.Exists(path))
+        {
+            WriteLine($"Removing directory: {path}");
             Directory.Delete(path, true);
-        else
+        }
+        else if (File.Exists(path))
+        {
+            WriteLine($"Removing file: {path}");
             File.Delete(path);
-    }
+        }
 }
 
 void WriteLine(string message = null)
