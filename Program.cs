@@ -7,13 +7,14 @@ var o = ProcessTerminatorOptions
 
 HandleArguments();
 WaitUntilMainProcessesExits();
-DisplayGithubUrl();
 
 var processes = GetProcesesToTerminate();
 
 DelayBeforeTerminate();
 SendCloseCommand();
 TerminateProcesses();
+RemoveLeftovers();
+DisplayGithubUrl();
 
 #if DEBUG
 Console.WriteLine("Press any key to Exit.");
@@ -29,16 +30,16 @@ void HandleArguments()
         if (o.Version) DisplayVersionMessage();
         if (o.Help)
         {
-            DisplayGithubUrl();
             DisplayHelpMessage();
+            DisplayGithubUrl();
         }
 
         ExitProgram();
     }
     else if (string.IsNullOrEmpty(o.ProcessName))
     {
-        DisplayGithubUrl();
         DisplayHelpMessage();
+        DisplayGithubUrl();
         ExitProgram();
     }
 }
@@ -55,6 +56,7 @@ Description:
         - Wait for another process to exit before proceeding.
         - Specify a delay before sending a close request.
         - Forcefully terminate if the process doesn't exit within the wait time.
+        - Cleanup leftover files and directories after termination.
 
     Ideal for controlled process termination, ensuring system stability.
 
@@ -66,6 +68,7 @@ Options:
     -d, --delay         Set a time buffer before sending a close request.
     -c, --command       Send a custom command before attempting to close the process.
     -w, --wait          Set a time buffer to allow the target process to close naturally.
+    -r, --remove        Paths (comma-separated) to remove after process termination.
 
 Arguments:
     process_name        The name of the process to terminate (required)
@@ -83,8 +86,9 @@ Examples:
     {programName} -d 10 spotify
         Delay for 10 seconds before attempting to exit 'spotify'.
 
-    {programName} -c "custom_command" exif
+    {programName} -c "custom_command" -r "D:\temp1,D:\temp2" exif
         Send a custom command to 'exif' before attempting to close it.
+        Then delete 'D:\temp1' and 'D:\temp2' after termination.
 
 """;
 
@@ -119,25 +123,22 @@ void WaitUntilMainProcessesExits()
 }
 void DelayBeforeTerminate()
 {
-    if (o.Delay == default) return;
+    if (o.Delay == default || processes.Length == default) return;
 
     Console.WriteLine($"Delaying termination for {o.Delay} seconds.");
     Task.Delay(o.DelayTimeSpan).Wait();
 }
 Process[] GetProcesesToTerminate()
 {
-    var process = Process.GetProcessesByName(o.ProcessName);
-    if (process.Length == default)
-    {
+    var processes = Process.GetProcessesByName(o.ProcessName);
+    if (processes.Length == default)
         Console.WriteLine($"No {o.ProcessName} instances found to terminate.");
-        ExitProgram();
-    }
 
-    return process;
+    return processes;
 }
 void SendCloseCommand()
 {
-    if (string.IsNullOrWhiteSpace(o.CustomCommand)) return;
+    if (string.IsNullOrWhiteSpace(o.CustomCommand) || processes.Length == default) return;
 
     Console.WriteLine($"Sending '{o.CustomCommand}' to all instances running.");
     Parallel.ForEach(Process.GetProcessesByName(o.CustomCommand), process =>
@@ -145,9 +146,17 @@ void SendCloseCommand()
         process.StandardInput.WriteLine(o.CustomCommand);
         process.StandardInput.Flush();
     });
+
+    if (o.Wait != default)
+    {
+        Console.WriteLine($"Waiting for {o.Wait} seconds.");
+        Task.Delay(o.WaitTimeSpan).Wait();
+    }
 }
 void TerminateProcesses()
 {
+    if (processes.Length == default) return;
+
     Console.WriteLine($"Requesting all {o.ProcessName} instances to close.");
     Parallel.ForEach(processes, process =>
     {
@@ -161,6 +170,29 @@ void TerminateProcesses()
         process.Close();
     });
 }
+void RemoveLeftovers()
+{
+    if (o.PathesToRemove == default) return;
+
+    foreach (var path in o.PathesToRemove)
+        try
+        {
+            Console.WriteLine($"Removing {path}");
+
+            var attributes = File.GetAttributes(path);
+            if ((attributes & FileAttributes.Directory) == FileAttributes.Directory)
+            {
+                if (Directory.Exists(path))
+                    Directory.Delete(path, true);
+            }
+            else
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+        }
+        catch (Exception) { }
+}
 #endregion
 
 #region Types
@@ -172,6 +204,7 @@ public sealed class ProcessTerminatorOptions
     public int Interval { get; init; } = 1;
     public int Wait { get; init; } = 0;
     public int Delay { get; init; } = 0;
+    public string[] PathesToRemove { get; init; } = [];
     public bool Help { get; init; } = false;
     public bool Version { get; init; } = false;
 
@@ -199,6 +232,12 @@ public sealed class ProcessTerminatorOptions
             args.Add(MonitorProcess);
         }
 
+        if (PathesToRemove.Length != default)
+        {
+            args.Add("--remove");
+            args.Add(string.Join(',', PathesToRemove));
+        }
+
         args.AddRange([
             "--interval", Interval.ToString(),
             "--wait", Wait.ToString(),
@@ -222,6 +261,7 @@ public sealed class ProcessTerminatorOptions
         var interval = Default.Interval;
         var wait = Default.Wait;
         var delay = Default.Delay;
+        var remove = Default.PathesToRemove;
         var help = Default.Help;
         var version = Default.Version;
 
@@ -288,6 +328,13 @@ public sealed class ProcessTerminatorOptions
                     else
                         throw new ArgumentException("Missing value for --wait option.");
                     break;
+                case "-r":
+                case "--remove":
+                    if (i + 1 < args.Length)
+                        remove = args[++i].Split(",");
+                    else
+                        throw new ArgumentException("Missing value for --remove option.");
+                    break;
                 default:
                     if (string.IsNullOrEmpty(processName))
                         processName = args[i];
@@ -306,6 +353,7 @@ public sealed class ProcessTerminatorOptions
             Interval = interval,
             Wait = wait,
             Delay = delay,
+            PathesToRemove = remove,
             Help = help,
             Version = version
         };

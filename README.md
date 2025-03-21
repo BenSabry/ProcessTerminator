@@ -12,6 +12,7 @@ Description:
         - Wait for another process to exit before proceeding.
         - Specify a delay before sending a close request.
         - Forcefully terminate if the process doesn't exit within the wait time.
+        - Cleanup leftover files and directories after termination.
 
     Ideal for controlled process termination, ensuring system stability.
 
@@ -23,6 +24,7 @@ Options:
     -d, --delay         Set a time buffer before sending a close request.
     -c, --command       Send a custom command before attempting to close the process.
     -w, --wait          Set a time buffer to allow the target process to close naturally.
+    -r, --remove        Paths (comma-separated) to remove after process termination.
 
 Arguments:
     process_name        The name of the process to terminate (required)
@@ -40,6 +42,7 @@ Examples:
     ProcessTerminator -d 10 spotify
         Delay for 10 seconds before attempting to exit 'spotify'.
 
-    ProcessTerminator -c "custom_command" exif
+    ProcessTerminator -c "custom_command" -r "D:\temp1,D:\temp2\file.ext" exif
         Send a custom command to 'exif' before attempting to close it.
+        Then delete 'D:\temp1' and 'D:\temp2\file.ext' after termination.
 ```
