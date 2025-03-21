@@ -43,9 +43,11 @@ void Initialize()
         ExitProgram();
     }
 
-    if (!File.Exists(log))
+    if (o.Log)
     {
-        File.Create(log).Close();
+        if (!File.Exists(log))
+            File.Create(log).Close();
+
         WriteLine(o.ToString());
     }
 }
@@ -380,7 +382,7 @@ public sealed class ProcessTerminator
 {
     #region Fields
     private const string ToolName = "ProcessTerminator.exe";
-    private const string ToolPath = $"Tools\\{ToolName}";
+    private const string ToolPath = $"{ToolName}";
 
     public readonly string Version = "0.0.0";
     private readonly string Arguments;
