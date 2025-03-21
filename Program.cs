@@ -167,7 +167,7 @@ void SendCloseCommand()
 
     if (o.Wait != default)
     {
-        WriteLine($"Waiting for {o.Wait} seconds.");
+        WriteLine($"Waiting {o.ProcessName} for {o.Wait} seconds.");
         Task.Delay(o.WaitTimeSpan).Wait();
     }
 }
@@ -208,9 +208,10 @@ void RemoveLeftovers()
 void WriteLine(string message = null)
 {
     Console.WriteLine(message);
-    if (o.Log)
-        lock (WriteLock)
-            File.AppendAllLines(log, [$"{DateTime.Now.ToString("yyyy.MM.dd-HH:mm:ss")} {message}"]);
+
+    if (o.Log) lock (WriteLock)
+            File.AppendAllLines(log, [$"{DateTime.Now
+                .ToString("yyyy.MM.dd-HH:mm:ss")} {message}"]);
 }
 #endregion
 
