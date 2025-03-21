@@ -2,6 +2,7 @@
 using System.Diagnostics;
 
 #region Main
+var WriteLock = new object();
 const string log = "ProcessTerminator.log";
 var o = new ProcessTerminatorOptions();
 var processes = Array.Empty<Process>();
@@ -23,7 +24,7 @@ try
 }
 catch (Exception ex)
 {
-    WriteLine($"{ex.Message} {ex.InnerException?.Message}");
+    WriteLine($"{ex.Message} {ex.StackTrace} {ex.InnerException?.Message} {ex.InnerException?.StackTrace}");
     throw;
 }
 #endregion
@@ -208,7 +209,8 @@ void WriteLine(string message = null)
 {
     Console.WriteLine(message);
     if (o.Log)
-        File.AppendAllLines(log, [$"{DateTime.Now.ToString("yyyy.MM.dd-HH:mm:ss")} {message}"]);
+        lock (WriteLock)
+            File.AppendAllLines(log, [$"{DateTime.Now.ToString("yyyy.MM.dd-HH:mm:ss")} {message}"]);
 }
 #endregion
 
