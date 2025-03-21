@@ -176,8 +176,8 @@ void TerminateProcesses()
     WriteLine($"Requesting all {o.ProcessName} instances to close.");
     Parallel.ForEach(processes, process =>
     {
-        process.CloseMainWindow();
-        if (!process.WaitForExit(o.DelayTimeSpan))
+        if (!process.CloseMainWindow() ||
+            !process.WaitForExit(o.WaitTimeSpan))
         {
             WriteLine($"Terminating {o.ProcessName} ({process.Id})");
             process.Kill();
