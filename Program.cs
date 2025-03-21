@@ -85,6 +85,7 @@ Examples:
 
     {programName} -c "custom_command" exif
         Send a custom command to 'exif' before attempting to close it.
+
 """;
 
     Console.WriteLine(HelpMessage);
